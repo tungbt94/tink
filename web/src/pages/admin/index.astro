@@ -1,0 +1,151 @@
+---
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>tink</title>
+  </head>
+  <body>
+    <main>
+      <h1>tink</h1>
+
+      <form id="create">
+        <input name="url" type="url" placeholder="https://example.com/long/url" required />
+        <input name="alias" type="text" placeholder="alias (optional)" pattern="[A-Za-z0-9_\-]{3,32}" />
+        <button type="submit">Shorten</button>
+      </form>
+      <p id="message" role="status"></p>
+
+      <table>
+        <thead>
+          <tr><th>Short link</th><th>Target</th><th>Clicks</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p id="empty" hidden>No links yet.</p>
+    </main>
+
+    <script is:inline>
+      const form = document.getElementById("create");
+      const rows = document.getElementById("rows");
+      const message = document.getElementById("message");
+      const empty = document.getElementById("empty");
+
+      async function api(path, options) {
+        const res = await fetch(path, {
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          ...options,
+        });
+        if (res.status === 204) return null;
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+        return data;
+      }
+
+      function cell(content) {
+        const td = document.createElement("td");
+        if (content instanceof Node) td.append(content);
+        else td.textContent = content;
+        return td;
+      }
+
+      function render(links) {
+        rows.replaceChildren();
+        empty.hidden = links.length > 0;
+        for (const link of links) {
+          const tr = document.createElement("tr");
+
+          const a = document.createElement("a");
+          a.href = link.shortUrl;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = link.shortUrl.replace(/^https?:\/\//, "");
+
+          const copy = document.createElement("button");
+          copy.type = "button";
+          copy.textContent = "Copy";
+          copy.onclick = async () => {
+            await navigator.clipboard.writeText(link.shortUrl);
+            copy.textContent = "Copied";
+            setTimeout(() => (copy.textContent = "Copy"), 1200);
+          };
+
+          const del = document.createElement("button");
+          del.type = "button";
+          del.className = "danger";
+          del.textContent = "Delete";
+          del.onclick = async () => {
+            if (!confirm(`Delete ${link.code}?`)) return;
+            await run(() => api(`/api/links/${encodeURIComponent(link.code)}`, { method: "DELETE" }));
+          };
+
+          const short = document.createElement("div");
+          short.className = "short";
+          short.append(a, copy);
+
+          const target = document.createElement("span");
+          target.className = "target";
+          target.title = link.url;
+          target.textContent = link.url;
+
+          tr.append(
+            cell(short),
+            cell(target),
+            cell(String(link.clickCount)),
+            cell(new Date(link.createdAt).toLocaleString()),
+            cell(del),
+          );
+          rows.append(tr);
+        }
+      }
+
+      async function load() {
+        render(await api("/api/links"));
+      }
+
+      async function run(action) {
+        message.textContent = "";
+        try {
+          await action();
+          await load();
+        } catch (err) {
+          message.textContent = err.message;
+        }
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        run(async () => {
+          await api("/api/links", {
+            method: "POST",
+            body: JSON.stringify({ url: data.get("url"), alias: data.get("alias") }),
+          });
+          form.reset();
+        });
+      });
+
+      run(() => Promise.resolve());
+    </script>
+
+    <style>
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { margin: 0; }
+      main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem; }
+      h1 { margin: 0 0 1.5rem; }
+      form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      form input[name="url"] { flex: 1 1 20rem; }
+      input, button { font: inherit; padding: 0.5rem 0.75rem; }
+      #message { color: #c0392b; min-height: 1.5rem; }
+      table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+      th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #8884; vertical-align: middle; }
+      .short { display: flex; gap: 0.5rem; align-items: center; }
+      .target { display: block; max-width: 22rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      button.danger { color: #c0392b; }
+    </style>
+  </body>
+</html>

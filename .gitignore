@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+web/dist/
+web/.astro/
+.DS_Store

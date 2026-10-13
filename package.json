@@ -1,0 +1,27 @@
+{
+  "name": "tink",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm build:web && wrangler dev",
+    "dev:web": "astro dev --root web",
+    "build:web": "astro build --root web",
+    "deploy": "pnpm build:web && wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply tink --local",
+    "db:migrate:remote": "wrangler d1 migrations apply tink --remote",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm build:web && vitest run"
+  },
+  "dependencies": {
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.0",
+    "@cloudflare/workers-types": "^5.20261012.1",
+    "astro": "^7.3.8",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4",
+    "wrangler": "^4.149.0"
+  }
+}
