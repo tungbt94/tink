@@ -8,3 +8,5 @@ web/.astro/
 .cloudflare/
 worker-startup.cpuprofile
 .secrets.prod
+.astro/
+dist/

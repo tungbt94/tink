@@ -23,9 +23,9 @@ The zone `tung.ai.vn` is in a multi-account login, so pick the account explicitl
 
 ```sh
 export CLOUDFLARE_ACCOUNT_ID=<account that owns tung.ai.vn>
-pnpm deploy                                     # build web/, upload Worker, attach tink.tung.ai.vn
+pnpm run deploy                                  # build web/, upload Worker, attach tink.tung.ai.vn
 # change credentials: put ADMIN_USER / ADMIN_PASS in .secrets.prod (gitignored), then
-pnpm deploy -- --secrets-file .secrets.prod
+pnpm run deploy -- --secrets-file .secrets.prod
 # new D1 migration: add migrations/NNNN_*.sql, then
 cf d1 migrations apply <DATABASE_ID> --dir migrations   # id: cf d1 list --name tink
 ```
