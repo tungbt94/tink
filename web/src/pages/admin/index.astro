@@ -92,7 +92,7 @@
           a.target = "_blank";
           a.rel = "noopener";
 
-          const target = el("span", "target", link.url);
+          const target = el("span", "target", `→ ${link.url}`);
           target.title = link.url;
 
           const info = el("div", "info");
@@ -156,7 +156,7 @@
       run(() => Promise.resolve());
     </script>
 
-    <style>
+    <style is:global>
       :root {
         color-scheme: light;
         --ink: #111;

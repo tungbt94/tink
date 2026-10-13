@@ -19,10 +19,9 @@ pnpm typecheck
 
 ## Deploy
 
-The zone `tung.ai.vn` is in a multi-account login, so pick the account explicitly:
+The account that owns `tung.ai.vn` is pinned via `accountId` in `cloudflare.config.ts` (the login has multiple accounts).
 
 ```sh
-export CLOUDFLARE_ACCOUNT_ID=<account that owns tung.ai.vn>
 pnpm run deploy                                  # build web/, upload Worker, attach tink.tung.ai.vn
 # change credentials: put ADMIN_USER / ADMIN_PASS in .secrets.prod (gitignored), then
 pnpm run deploy -- --secrets-file .secrets.prod

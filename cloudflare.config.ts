@@ -1,6 +1,8 @@
 import { bindings, defineConfig } from "cf/config";
 
 export default defineConfig({
+	// Owns the tung.ai.vn zone and the tink D1 database (login has multiple accounts).
+	accountId: "15e4d475b7fa039ecf9cae9f9481e48a",
 	worker: {
 		name: "tink",
 		compatibilityDate: "2026-10-01",
