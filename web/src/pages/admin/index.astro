@@ -1,31 +1,54 @@
 ---
 ---
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>tink</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap"
+    />
   </head>
   <body>
+    <header class="topbar">
+      <a class="logo" href="/admin">tink <span aria-hidden="true">▸</span></a>
+      <span class="tag">URL SHORTENER</span>
+      <div class="stats">
+        <span class="stat">LINKS <b id="stat-links">0</b></span>
+        <span class="stat">CLICKS <b id="stat-clicks">0</b></span>
+      </div>
+    </header>
+
     <main>
-      <h1>tink</h1>
+      <section class="hero">
+        <h1>Rút gọn link<br />nhanh, gọn, của riêng bạn</h1>
+        <hr />
+        <p>Dán URL dài, nhận link ngắn ngay lập tức.<br />Alias tuỳ chọn: 3–32 ký tự, chữ, số, <code>-</code> hoặc <code>_</code>.</p>
+      </section>
 
-      <form id="create">
-        <input name="url" type="url" placeholder="https://example.com/long/url" required />
-        <input name="alias" type="text" placeholder="alias (optional)" pattern="[A-Za-z0-9_\-]{3,32}" />
-        <button type="submit">Shorten</button>
+      <form id="create" class="card">
+        <label>
+          <span>URL đích</span>
+          <input name="url" type="url" placeholder="https://example.com/long/url" required autocomplete="off" />
+        </label>
+        <label>
+          <span>Alias <em>(tuỳ chọn)</em></span>
+          <input name="alias" type="text" placeholder="my-link" pattern="[A-Za-z0-9_\-]{3,32}" autocomplete="off" />
+        </label>
+        <button type="submit" class="btn btn-primary">Rút gọn</button>
+        <p id="message" role="status"></p>
       </form>
-      <p id="message" role="status"></p>
 
-      <table>
-        <thead>
-          <tr><th>Short link</th><th>Target</th><th>Clicks</th><th>Created</th><th></th></tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-      <p id="empty" hidden>No links yet.</p>
+      <section class="links">
+        <h2 class="chip">Link đã tạo</h2>
+        <ul id="rows"></ul>
+        <p id="empty" class="empty" hidden>Chưa có link nào.</p>
+      </section>
     </main>
 
     <script is:inline>
@@ -33,6 +56,8 @@
       const rows = document.getElementById("rows");
       const message = document.getElementById("message");
       const empty = document.getElementById("empty");
+      const statLinks = document.getElementById("stat-links");
+      const statClicks = document.getElementById("stat-clicks");
 
       async function api(path, options) {
         const res = await fetch(path, {
@@ -46,60 +71,59 @@
         return data;
       }
 
-      function cell(content) {
-        const td = document.createElement("td");
-        if (content instanceof Node) td.append(content);
-        else td.textContent = content;
-        return td;
+      function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text != null) node.textContent = text;
+        return node;
       }
 
       function render(links) {
         rows.replaceChildren();
         empty.hidden = links.length > 0;
-        for (const link of links) {
-          const tr = document.createElement("tr");
+        statLinks.textContent = String(links.length);
+        statClicks.textContent = String(links.reduce((sum, link) => sum + link.clickCount, 0));
 
-          const a = document.createElement("a");
+        for (const link of links) {
+          const li = el("li", "link");
+
+          const a = el("a", "short", link.shortUrl.replace(/^https?:\/\//, ""));
           a.href = link.shortUrl;
           a.target = "_blank";
           a.rel = "noopener";
-          a.textContent = link.shortUrl.replace(/^https?:\/\//, "");
 
-          const copy = document.createElement("button");
+          const target = el("span", "target", link.url);
+          target.title = link.url;
+
+          const info = el("div", "info");
+          info.append(a, target);
+
+          const meta = el("div", "meta");
+          meta.append(
+            el("span", "clicks", `${link.clickCount} click`),
+            el("span", "date", new Date(link.createdAt).toLocaleString("vi-VN")),
+          );
+
+          const copy = el("button", "btn btn-copy", "Copy");
           copy.type = "button";
-          copy.textContent = "Copy";
           copy.onclick = async () => {
             await navigator.clipboard.writeText(link.shortUrl);
             copy.textContent = "Copied";
             setTimeout(() => (copy.textContent = "Copy"), 1200);
           };
 
-          const del = document.createElement("button");
+          const del = el("button", "btn btn-danger", "Xoá");
           del.type = "button";
-          del.className = "danger";
-          del.textContent = "Delete";
           del.onclick = async () => {
-            if (!confirm(`Delete ${link.code}?`)) return;
+            if (!confirm(`Xoá ${link.code}?`)) return;
             await run(() => api(`/api/links/${encodeURIComponent(link.code)}`, { method: "DELETE" }));
           };
 
-          const short = document.createElement("div");
-          short.className = "short";
-          short.append(a, copy);
+          const actions = el("div", "actions");
+          actions.append(copy, del);
 
-          const target = document.createElement("span");
-          target.className = "target";
-          target.title = link.url;
-          target.textContent = link.url;
-
-          tr.append(
-            cell(short),
-            cell(target),
-            cell(String(link.clickCount)),
-            cell(new Date(link.createdAt).toLocaleString()),
-            cell(del),
-          );
-          rows.append(tr);
+          li.append(info, meta, actions);
+          rows.append(li);
         }
       }
 
@@ -133,19 +157,201 @@
     </script>
 
     <style>
-      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-      body { margin: 0; }
-      main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem; }
-      h1 { margin: 0 0 1.5rem; }
-      form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-      form input[name="url"] { flex: 1 1 20rem; }
-      input, button { font: inherit; padding: 0.5rem 0.75rem; }
-      #message { color: #c0392b; min-height: 1.5rem; }
-      table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-      th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #8884; vertical-align: middle; }
-      .short { display: flex; gap: 0.5rem; align-items: center; }
-      .target { display: block; max-width: 22rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      button.danger { color: #c0392b; }
+      :root {
+        color-scheme: light;
+        --ink: #111;
+        --muted: #6b675e;
+        --paper: #f7f3e6;
+        --grid: #e6e0cf;
+        --white: #fff;
+        --yellow: #fbe46b;
+        --cyan: #9ef0f0;
+        --green: #c9f29b;
+        --pink: #ff8fab;
+        --border: 3px solid var(--ink);
+        --sans: "Space Grotesk", system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        color: var(--ink);
+        background-color: var(--paper);
+        background-image:
+          linear-gradient(var(--grid) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 28px 28px;
+        min-height: 100vh;
+      }
+      code { font-family: var(--mono); font-size: 0.9em; }
+
+      /* Top bar */
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding: 0.875rem 1.25rem;
+        background: var(--white);
+        border-bottom: var(--border);
+      }
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--ink);
+        text-decoration: none;
+        padding: 0.25rem 0.875rem;
+        background: var(--yellow);
+        border: var(--border);
+        box-shadow: 4px 4px 0 var(--ink);
+      }
+      .logo span { font-size: 0.8em; }
+      .tag {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        padding: 0.3rem 0.6rem;
+        background: var(--cyan);
+        border: 2px solid var(--ink);
+      }
+      .stats { display: flex; gap: 0.75rem; margin-left: auto; }
+      .stat {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        padding: 0.35rem 0.6rem;
+        border: 2px solid var(--ink);
+        background: var(--white);
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      .stat b {
+        font-family: var(--mono);
+        margin-left: 0.35rem;
+        padding: 0 0.35rem;
+        color: var(--white);
+        background: var(--ink);
+      }
+
+      main { max-width: 52rem; margin: 0 auto; padding: 3.5rem 1rem 5rem; }
+
+      /* Hero */
+      .hero { text-align: center; }
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(2rem, 6vw, 3.5rem);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+      }
+      .hero hr {
+        width: 6rem;
+        margin: 1.5rem auto;
+        border: 0;
+        height: 6px;
+        background: var(--pink);
+        border: 2px solid var(--ink);
+      }
+      .hero p { margin: 0; font-size: 1.1rem; line-height: 1.6; }
+
+      /* Buttons */
+      .btn {
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--ink);
+        border: var(--border);
+        box-shadow: 4px 4px 0 var(--ink);
+        transition: transform 80ms, box-shadow 80ms;
+      }
+      .btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+      .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
+      .btn:focus-visible, input:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+      .btn-primary { font-size: 1.15rem; padding: 0.75rem 2rem; background: var(--yellow); box-shadow: 6px 6px 0 var(--ink); }
+      .btn-copy, .btn-danger { font-size: 0.85rem; padding: 0.35rem 0.75rem; border-width: 2px; box-shadow: 3px 3px 0 var(--ink); }
+      .btn-copy { background: var(--cyan); }
+      .btn-danger { background: var(--pink); }
+
+      /* Create form */
+      .card {
+        margin: 3rem 0 3.5rem;
+        padding: 1.75rem;
+        background: var(--white);
+        border: var(--border);
+        box-shadow: 10px 10px 0 var(--ink);
+        display: grid;
+        grid-template-columns: 1fr 14rem;
+        gap: 1rem;
+        align-items: end;
+      }
+      .card label { display: grid; gap: 0.4rem; font-weight: 700; font-size: 0.9rem; }
+      .card label em { font-style: normal; font-weight: 500; color: var(--muted); }
+      .card input {
+        font-family: var(--mono);
+        font-size: 1rem;
+        padding: 0.75rem 0.875rem;
+        background: var(--paper);
+        border: var(--border);
+        border-radius: 0;
+      }
+      .card .btn-primary { grid-column: 1 / -1; justify-self: center; margin-top: 0.5rem; }
+      #message { grid-column: 1 / -1; margin: 0; text-align: center; font-weight: 700; }
+      #message:empty { display: none; }
+      #message:not(:empty) { padding: 0.6rem; background: var(--pink); border: 2px solid var(--ink); }
+
+      /* Links list */
+      .chip {
+        display: inline-block;
+        margin: 0 0 1.25rem;
+        font-size: 1.35rem;
+        padding: 0.35rem 1rem;
+        background: var(--green);
+        border: var(--border);
+        box-shadow: 4px 4px 0 var(--ink);
+      }
+      #rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+      .link {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        background: var(--white);
+        border: var(--border);
+        box-shadow: 5px 5px 0 var(--ink);
+      }
+      .info { flex: 1; min-width: 0; display: grid; gap: 0.25rem; }
+      .short { font-family: var(--mono); font-weight: 600; color: var(--ink); text-decoration: none; }
+      .short:hover { text-decoration: underline; text-decoration-thickness: 2px; }
+      .target {
+        font-size: 0.85rem;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .meta { display: grid; justify-items: end; gap: 0.25rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+      .clicks { font-family: var(--mono); padding: 0.1rem 0.45rem; background: var(--yellow); border: 2px solid var(--ink); }
+      .date { color: var(--muted); }
+      .actions { display: flex; gap: 0.6rem; }
+      .empty {
+        padding: 1.5rem;
+        text-align: center;
+        font-weight: 700;
+        color: var(--muted);
+        background: #fdf8dc;
+        border: 3px dashed var(--muted);
+      }
+
+      @media (max-width: 640px) {
+        .stats { margin-left: 0; }
+        main { padding-top: 2.5rem; }
+        .card { grid-template-columns: 1fr; padding: 1.25rem; box-shadow: 6px 6px 0 var(--ink); }
+        .card .btn-primary { width: 100%; }
+        .link { flex-wrap: wrap; }
+        .info { flex-basis: 100%; }
+        .meta { justify-items: start; grid-auto-flow: column; align-items: center; }
+        .actions { margin-left: auto; }
+      }
     </style>
   </body>
 </html>
