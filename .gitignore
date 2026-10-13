@@ -5,3 +5,6 @@ node_modules/
 web/dist/
 web/.astro/
 .DS_Store
+.cloudflare/
+worker-startup.cpuprofile
+.secrets.prod

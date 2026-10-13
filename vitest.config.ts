@@ -4,10 +4,12 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [
     cloudflareTest({
-      wrangler: { configPath: "./wrangler.jsonc" },
       miniflare: {
+        compatibilityDate: "2026-10-01",
         bindings: { ADMIN_USER: "admin", ADMIN_PASS: "test-pass" },
-        // Real Static Assets binding is used: `pnpm test` builds web/ first.
+        d1Databases: ["DB"],
+        // Real Static Assets: `pnpm test` builds web/ first.
+        assets: { directory: "./web/dist", binding: "ASSETS" },
       },
     }),
   ],

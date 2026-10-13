@@ -1,0 +1,12 @@
+{
+  "name": "tink-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build"
+  },
+  "devDependencies": {
+    "astro": "^7.3.8"
+  }
+}
